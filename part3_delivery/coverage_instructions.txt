@@ -1,0 +1,33 @@
+## 代码覆盖率测试说明
+
+### 步骤1：构建覆盖率版本
+gcc --coverage -g -o giftcardreader_cov giftcardreader.c
+
+### 步骤2：运行测试用例
+# 运行有效测试用例
+for f in testcases/valid/*.gft; do
+    echo "Testing $f"
+    ./giftcardreader_cov 1 "$f" > /dev/null
+done
+
+# 运行无效测试用例
+for f in testcases/invalid/*.gft; do
+    echo "Testing $f"
+    ./giftcardreader_cov 1 "$f" > /dev/null 2>&1
+done
+
+# 测试JSON输出
+./giftcardreader_cov 2 testcases/valid/cov2.gft > /dev/null
+
+### 步骤3：生成覆盖率报告
+gcov giftcardreader_cov-giftcardreader.gcda
+
+### 预期结果
+- 初始覆盖率：61.20%
+- 加入cov1.gft和cov2.gft后：83.61%
+- 提升：22.41%
+
+### 覆盖率改进说明
+- cov1.gft：覆盖动画操作码0x01(读字符)和0x02(写字符)
+- cov2.gft：覆盖数学操作码0x04(常量)、0x05(异或)、0x06(加法)
+- JSON模式：覆盖gift_card_json()函数
