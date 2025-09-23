@@ -26,7 +26,8 @@ void animate(char *msg, unsigned char *program) {
     unsigned char *pc = program;
     int i = 0;
     int zf = 0;
-    while (pc < program+256) {
+    int instruction_count = 0; // Prevent infinite loops
+    while (pc < program+256 && instruction_count < 10000) {
         unsigned char op, arg1, arg2;
         op = *pc;
         arg1 = *(pc+1);
@@ -61,12 +62,15 @@ void animate(char *msg, unsigned char *program) {
                 goto done;
             case 0x09:
                 pc += (char)arg1;
-                break;
+                instruction_count++; // Increment counter to prevent infinite loops
+                continue; // Skip the pc+=3 increment
             case 0x10:
                 if (zf) pc += (char)arg1;
-                break;
+                instruction_count++; // Increment counter to prevent infinite loops
+                continue; // Skip the pc+=3 increment
         }
         pc+=3;
+        instruction_count++; // Increment counter to prevent infinite loops
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
         // Slow down animation to make it more visible (disabled if fuzzing)
         usleep(5000);
@@ -206,9 +210,15 @@ struct this_gift_card *gift_card_reader(FILE *input_fd) {
 //		printf("VD: %d\n",(int)ptr - (int) gcd_ptr->merchant_id);
 		gcd_ptr->customer_id = ptr;
 		ptr += 32;
-		/* JAC: Something seems off here... */
-		gcd_ptr->number_of_gift_card_records = *((char *)ptr);
+		/* Fixed: Read as int instead of char */
+		gcd_ptr->number_of_gift_card_records = *((int *)ptr);
 		ptr += 4;
+
+		// Validate number of records to prevent excessive allocation
+		if (gcd_ptr->number_of_gift_card_records < 0 || gcd_ptr->number_of_gift_card_records > 1000) {
+			printf("Invalid number of records: %d\n", gcd_ptr->number_of_gift_card_records);
+			exit(1);
+		}
 
 		gcd_ptr->gift_card_record_data = (void *)malloc(gcd_ptr->number_of_gift_card_records*sizeof(void*));
 
@@ -218,15 +228,21 @@ struct this_gift_card *gift_card_reader(FILE *input_fd) {
 			struct gift_card_record_data *gcrd_ptr;
 			gcrd_ptr = gcd_ptr->gift_card_record_data[i] = malloc(sizeof(struct gift_card_record_data));
 			struct gift_card_amount_change *gcac_ptr;
-			gcac_ptr = gcrd_ptr->actual_record = malloc(sizeof(struct gift_card_record_data));
+			gcac_ptr = gcrd_ptr->actual_record = malloc(sizeof(struct gift_card_amount_change));
             struct gift_card_program *gcp_ptr;
 			gcp_ptr = malloc(sizeof(struct gift_card_program));
 
-			gcrd_ptr->record_size_in_bytes = *((char *)ptr);
+			gcrd_ptr->record_size_in_bytes = *((int *)ptr);
             //printf("rec at %x, %d bytes\n", ptr - optr, gcrd_ptr->record_size_in_bytes);
 			ptr += 4;
+
+			// Validate record size
+			if (gcrd_ptr->record_size_in_bytes < 8 || gcrd_ptr->record_size_in_bytes > 10000) {
+				printf("Invalid record size: %d\n", gcrd_ptr->record_size_in_bytes);
+				exit(1);
+			}
 			//printf("record_data: %d\n",gcrd_ptr->record_size_in_bytes);
-			gcrd_ptr->type_of_record = *((char *)ptr);
+			gcrd_ptr->type_of_record = *((int *)ptr);
 			ptr += 4;
             //printf("type of rec: %d\n", gcrd_ptr->type_of_record);
 
@@ -236,8 +252,11 @@ struct this_gift_card *gift_card_reader(FILE *input_fd) {
 				ptr += 4;
 
 				// don't need a sig if negative
-				/* JAC: something seems off here */
-				if (gcac_ptr < 0) break;
+				/* Fixed: Check amount value instead of pointer */
+				if (gcac_ptr->amount_added < 0) {
+					// Skip signature for negative amounts
+					continue;
+				}
 
 				gcac_ptr->actual_signature = ptr;
 				ptr+=32;
