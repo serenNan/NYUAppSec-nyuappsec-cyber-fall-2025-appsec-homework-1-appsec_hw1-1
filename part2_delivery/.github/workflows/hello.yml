@@ -26,10 +26,24 @@ jobs:
     - name: Build all versions
       run: make
 
+    - name: Debug directory and files
+      run: |
+        echo "Current directory:"
+        pwd
+        echo "Files in directory:"
+        ls -la
+        echo "Checking executable permissions:"
+        ls -la runtests.sh
+        echo "Checking if executables exist:"
+        ls -la giftcardreader.* || echo "No giftcardreader executables found"
+
     - name: Run test script
       run: |
         echo "Running giftcardreader test script..."
-        ./runtests.sh
+        bash ./runtests.sh
 
     - name: Run full test suite
-      run: make test
+      run: |
+        echo "Running make test..."
+        make test
+        echo "Make test completed with exit code: $?"
