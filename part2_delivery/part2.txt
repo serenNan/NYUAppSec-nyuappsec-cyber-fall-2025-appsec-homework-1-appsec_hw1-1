@@ -1,0 +1,57 @@
+Part 2: Bug Analysis for Test Cases
+
+1. crash1.gft - Memory Allocation Bug
+--------------------------------------
+Bug Location: Line 221 in giftcardreader.c
+Bug Type: Incorrect memory allocation size
+
+Description:
+The bug occurs when allocating memory for gift_card_amount_change structure:
+    gcac_ptr = gcrd_ptr->actual_record = malloc(sizeof(struct gift_card_record_data));
+
+The code incorrectly allocates sizeof(struct gift_card_record_data) instead of
+sizeof(struct gift_card_amount_change). This causes a buffer overflow when the
+program later writes to fields in the gift_card_amount_change structure.
+
+Test Case:
+crash1.gft contains 100 gift card records with amount changes. The repeated
+incorrect allocations and subsequent writes cause memory corruption that leads
+to a crash.
+
+2. crash2.gft - Heap Buffer Overflow
+-------------------------------------
+Bug Location: Lines 210, 225, 229 in giftcardreader.c
+Bug Type: Integer type confusion and buffer overflow
+
+Description:
+Multiple type confusion bugs:
+- Line 210: number_of_gift_card_records is read as char instead of int
+- Line 225: record_size_in_bytes is read as char instead of int
+- Line 229: type_of_record is read as char instead of int
+
+These bugs cause the program to misinterpret data sizes and boundaries. When
+combined with carefully crafted input, they lead to reading beyond allocated
+buffer boundaries.
+
+Test Case:
+crash2.gft exploits these type confusions by providing values that are
+interpreted differently when cast to char vs int, causing the program to read
+beyond the allocated heap buffer (as detected by AddressSanitizer).
+
+3. hang.gft - Infinite Loop in Animation
+-----------------------------------------
+Bug Location: Lines 29-74 in giftcardreader.c (animate function)
+Bug Type: Unvalidated jump instruction causing infinite loop
+
+Description:
+The animate() function processes THX-1138 assembly instructions for animated
+messages. The function doesn't validate jump targets (opcode 0x09), allowing
+creation of infinite loops. The pc (program counter) can be manipulated to
+jump backward, creating a loop with no exit condition.
+
+Test Case:
+hang.gft contains an animation program with instructions:
+- Display message (0x07)
+- Jump back 6 bytes (0x09, 0xFA) - creates infinite loop
+The program repeatedly displays the message and jumps back to the start,
+never reaching the loop exit condition or the 0x08 (end program) instruction.

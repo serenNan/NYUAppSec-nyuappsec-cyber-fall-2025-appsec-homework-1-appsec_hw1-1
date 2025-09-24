@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Print Hello World
+      run: echo "Hello world"
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential gcc
+
+    - name: Build all versions
+      run: make
+
+    - name: Debug directory and files
+      run: |
+        echo "Current directory:"
+        pwd
+        echo "Files in directory:"
+        ls -la
+        echo "Checking executable permissions:"
+        ls -la runtests.sh
+        echo "Checking if executables exist:"
+        ls -la giftcardreader.* || echo "No giftcardreader executables found"
+
+    - name: Run test script
+      run: |
+        echo "Running giftcardreader test script..."
+        bash ./runtests.sh
+
+    - name: Run full test suite
+      run: |
+        echo "Running make test..."
+        make test
+        echo "Make test completed with exit code: $?"

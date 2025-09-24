@@ -139,3 +139,4 @@ gdb ./giftcardreader.original
 ./giftcardreader 1 test.gft
 echo $?  # 如果返回值 >= 128，说明程序崩溃
 ```
+- 所有文件都要在原来基础上修改，不要额外创建文件
