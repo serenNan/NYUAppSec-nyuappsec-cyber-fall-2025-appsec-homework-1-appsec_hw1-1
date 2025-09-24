@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 交付 ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, 交付 ]
 
 jobs:
   hello:
@@ -16,7 +16,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
@@ -26,5 +26,10 @@ jobs:
     - name: Build all versions
       run: make
 
-    - name: Run test suite
+    - name: Run test script
+      run: |
+        echo "Running giftcardreader test script..."
+        ./runtests.sh
+
+    - name: Run full test suite
       run: make test
