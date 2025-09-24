@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 交付 ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, 交付 ]
 
 jobs:
   hello:
